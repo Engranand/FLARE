@@ -1,0 +1,1 @@
+Offline source-preserving CSV parsing is implemented here. `csv_parser.py` reads verified bytes; `classification.py` assigns lexical categories; `reporting.py` creates records and counts; `bass_ii.py` binds the verified BASS-II source. See `docs/bass_ii_parser.md` at the repository root. Supporting DOCX/XLSX semantics remain unresolved.

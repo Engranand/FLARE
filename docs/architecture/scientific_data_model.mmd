@@ -1,0 +1,384 @@
+erDiagram
+    %% M3.3: 33 entities, 140 FK edges; fk labels follow DDL declaration order.
+    %% N1: review seal freezes decision and observation/link/issue scope entries.
+    %% approval_dependency decision XOR has three targets; scope kinds follow N1 shape checks.
+    %% review_event eight-target XOR; aggregate_seal six-target XOR; issue/eligibility observation-test XOR.
+    %% N2: no role requirements plus all inputs not_required/not_applicable permits no ResultCondition.
+    %% Scope and self FKs are drawn. Solid identifying lines only when FK columns are in child PK.
+    investigation {
+        uuid id PK
+    }
+    source_document {
+        uuid investigation_id PK, FK
+        uuid id PK
+    }
+    source_acquisition {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid source_document_id FK
+    }
+    evidence_reference {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid source_document_id FK
+    }
+    parse_run {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid source_document_id FK
+    }
+    source_field {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid parse_run_id FK
+        uuid header_evidence_id FK
+    }
+    source_record {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid parse_run_id FK
+        uuid row_evidence_id FK
+    }
+    experimental_test {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid identity_evidence_id FK
+    }
+    test_source_record {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid experimental_test_id FK
+        uuid source_record_id FK
+        uuid evidence_id FK
+    }
+    test_relationship {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid left_test_id FK
+        uuid right_test_id FK
+        uuid evidence_id FK
+    }
+    observation {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid parse_run_id FK
+        uuid source_record_id FK
+        uuid source_field_id FK
+        uuid evidence_id FK
+        uuid unit_evidence_id FK
+    }
+    scientific_variable {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid evidence_id FK
+    }
+    semantic_annotation {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid observation_id FK
+        uuid variable_id FK
+        uuid supersedes_id FK
+        uuid primary_evidence_id FK
+    }
+    annotation_evidence {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid annotation_id FK
+        uuid evidence_id FK
+    }
+    experimental_condition {
+        uuid segment_id FK
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid experimental_test_id FK
+        uuid supersedes_id FK
+        uuid evidence_id FK
+    }
+    data_quality_issue {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid observation_id FK
+        uuid experimental_test_id FK
+        uuid evidence_id FK
+    }
+    review_event {
+        uuid metadata_revision_id FK
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid annotation_id FK
+        uuid variable_id FK
+        uuid condition_id FK
+        uuid test_link_id FK
+        uuid test_relation_id FK
+        uuid issue_id FK
+        uuid result_id FK
+        uuid supersedes_id FK
+        uuid evidence_id FK
+    }
+    analysis_protocol {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid evidence_id FK
+    }
+    analytical_eligibility {
+        uuid segment_id FK
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid protocol_id FK
+        uuid observation_id FK
+        uuid experimental_test_id FK
+        uuid supersedes_id FK
+        uuid annotation_id FK
+        uuid annotation_review_id FK
+        uuid condition_id FK
+        uuid condition_review_id FK
+        uuid evidence_id FK
+    }
+    analytical_result {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid protocol_id FK
+        uuid artifact_document_id FK
+    }
+    result_input {
+        uuid segment_id FK
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid result_id FK
+        uuid annotation_id FK
+        uuid eligibility_id FK
+        uuid test_link_id FK
+        uuid test_link_review_id FK
+    }
+    result_condition {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid result_id FK
+        uuid condition_id FK
+        uuid eligibility_id FK
+    }
+    result_evidence {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid result_id FK
+        uuid evidence_id FK
+    }
+    condition_segment {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid experimental_test_id FK
+        uuid evidence_id FK
+    }
+    instrument {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid evidence_id FK
+    }
+    condition_role {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid evidence_id FK
+    }
+    condition_component {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid condition_id FK
+        uuid role_id FK
+        uuid instrument_id FK
+        uuid variable_id FK
+        uuid annotation_id FK
+        uuid evidence_id FK
+    }
+    protocol_requirement {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid protocol_id FK
+        uuid variable_id FK
+        uuid role_id FK
+        uuid evidence_id FK
+    }
+    protocol_unit_rule {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid requirement_id FK
+        uuid evidence_id FK
+    }
+    metadata_revision {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid source_document_id FK
+        uuid supersedes_id FK
+        uuid evidence_id FK
+    }
+    aggregate_seal {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid parse_run_id FK
+        uuid annotation_id FK
+        uuid condition_id FK
+        uuid protocol_id FK
+        uuid result_id FK
+        uuid review_id FK
+    }
+    approval_dependency {
+        uuid snapshot_observation_id FK
+        uuid snapshot_link_id FK
+        uuid snapshot_issue_id FK
+        uuid snapshot_review_id FK
+        uuid snapshot_review_seal_id FK
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid owner_review_id FK
+        uuid dependency_review_id FK
+        uuid dependency_eligibility_id FK
+        uuid dependency_seal_id FK
+    }
+    publication_event {
+        uuid investigation_id PK, FK
+        uuid id PK
+        uuid result_id FK
+        uuid result_seal_id FK
+        uuid result_review_id FK
+        uuid review_seal_id FK
+        uuid supersedes_id FK
+    }
+    investigation ||--o{ source_document : fk_0
+    investigation ||--o{ source_acquisition : fk_1
+    source_document o|..o{ source_acquisition : fk_2
+    investigation ||--o{ evidence_reference : fk_3
+    source_document ||..o{ evidence_reference : fk_4
+    investigation ||--o{ parse_run : fk_5
+    source_document ||..o{ parse_run : fk_6
+    investigation ||--o{ source_field : fk_7
+    parse_run ||..o{ source_field : fk_8
+    evidence_reference ||..o{ source_field : fk_9
+    investigation ||--o{ source_record : fk_10
+    parse_run ||..o{ source_record : fk_11
+    evidence_reference ||..o{ source_record : fk_12
+    investigation ||--o{ experimental_test : fk_13
+    evidence_reference ||..o{ experimental_test : fk_14
+    investigation ||--o{ test_source_record : fk_15
+    experimental_test ||..o{ test_source_record : fk_16
+    source_record ||..o{ test_source_record : fk_17
+    evidence_reference ||..o{ test_source_record : fk_18
+    investigation ||--o{ test_relationship : fk_19
+    experimental_test ||..o{ test_relationship : fk_20
+    experimental_test ||..o{ test_relationship : fk_21
+    evidence_reference ||..o{ test_relationship : fk_22
+    investigation ||--o{ observation : fk_23
+    parse_run ||..o{ observation : fk_24
+    source_record ||..o{ observation : fk_25
+    source_field ||..o{ observation : fk_26
+    evidence_reference ||..o{ observation : fk_27
+    evidence_reference o|..o{ observation : fk_28
+    investigation ||--o{ scientific_variable : fk_29
+    evidence_reference ||..o{ scientific_variable : fk_30
+    investigation ||--o{ semantic_annotation : fk_31
+    observation ||..o{ semantic_annotation : fk_32
+    scientific_variable ||..o{ semantic_annotation : fk_33
+    semantic_annotation o|..o| semantic_annotation : fk_34
+    evidence_reference ||..o{ semantic_annotation : fk_35
+    investigation ||--o{ annotation_evidence : fk_36
+    semantic_annotation ||..o{ annotation_evidence : fk_37
+    evidence_reference ||..o{ annotation_evidence : fk_38
+    investigation ||--o{ experimental_condition : fk_39
+    experimental_test ||..o{ experimental_condition : fk_40
+    experimental_condition o|..o| experimental_condition : fk_41
+    evidence_reference ||..o{ experimental_condition : fk_42
+    investigation ||--o{ data_quality_issue : fk_43
+    observation o|..o{ data_quality_issue : fk_44
+    experimental_test o|..o{ data_quality_issue : fk_45
+    evidence_reference ||..o{ data_quality_issue : fk_46
+    investigation ||--o{ review_event : fk_47
+    semantic_annotation o|..o{ review_event : fk_48
+    scientific_variable o|..o{ review_event : fk_49
+    experimental_condition o|..o{ review_event : fk_50
+    test_source_record o|..o{ review_event : fk_51
+    test_relationship o|..o{ review_event : fk_52
+    data_quality_issue o|..o{ review_event : fk_53
+    analytical_result o|..o{ review_event : fk_54
+    review_event o|..o| review_event : fk_55
+    evidence_reference ||..o{ review_event : fk_56
+    investigation ||--o{ analysis_protocol : fk_57
+    evidence_reference ||..o{ analysis_protocol : fk_58
+    investigation ||--o{ analytical_eligibility : fk_59
+    analysis_protocol ||..o{ analytical_eligibility : fk_60
+    observation o|..o{ analytical_eligibility : fk_61
+    experimental_test o|..o{ analytical_eligibility : fk_62
+    analytical_eligibility o|..o| analytical_eligibility : fk_63
+    semantic_annotation o|..o{ analytical_eligibility : fk_64
+    review_event o|..o{ analytical_eligibility : fk_65
+    experimental_condition o|..o{ analytical_eligibility : fk_66
+    review_event o|..o{ analytical_eligibility : fk_67
+    evidence_reference ||..o{ analytical_eligibility : fk_68
+    investigation ||--o{ analytical_result : fk_69
+    analysis_protocol ||..o{ analytical_result : fk_70
+    source_document o|..o{ analytical_result : fk_71
+    investigation ||--o{ result_input : fk_72
+    analytical_result ||..o{ result_input : fk_73
+    semantic_annotation ||..o{ result_input : fk_74
+    analytical_eligibility ||..o{ result_input : fk_75
+    test_source_record ||..o{ result_input : fk_76
+    review_event ||..o{ result_input : fk_77
+    investigation ||--o{ result_condition : fk_78
+    analytical_result ||..o{ result_condition : fk_79
+    experimental_condition ||..o{ result_condition : fk_80
+    analytical_eligibility ||..o{ result_condition : fk_81
+    investigation ||--o{ result_evidence : fk_82
+    analytical_result ||..o{ result_evidence : fk_83
+    evidence_reference ||..o{ result_evidence : fk_84
+    source_record ||..o{ observation : fk_85
+    source_field ||..o{ observation : fk_86
+    investigation ||--o{ condition_segment : fk_87
+    experimental_test ||..o{ condition_segment : fk_88
+    evidence_reference ||..o{ condition_segment : fk_89
+    investigation ||--o{ instrument : fk_90
+    evidence_reference ||..o{ instrument : fk_91
+    investigation ||--o{ condition_role : fk_92
+    evidence_reference ||..o{ condition_role : fk_93
+    investigation ||--o{ condition_component : fk_94
+    experimental_condition ||..o{ condition_component : fk_95
+    condition_role ||..o{ condition_component : fk_96
+    instrument o|..o{ condition_component : fk_97
+    scientific_variable ||..o{ condition_component : fk_98
+    semantic_annotation o|..o{ condition_component : fk_99
+    evidence_reference ||..o{ condition_component : fk_100
+    condition_segment ||..o{ experimental_condition : fk_101
+    condition_segment ||..o{ result_input : fk_102
+    investigation ||--o{ protocol_requirement : fk_103
+    analysis_protocol ||..o{ protocol_requirement : fk_104
+    scientific_variable ||..o{ protocol_requirement : fk_105
+    condition_role o|..o{ protocol_requirement : fk_106
+    evidence_reference ||..o{ protocol_requirement : fk_107
+    investigation ||--o{ protocol_unit_rule : fk_108
+    protocol_requirement ||..o{ protocol_unit_rule : fk_109
+    evidence_reference ||..o{ protocol_unit_rule : fk_110
+    investigation ||--o{ metadata_revision : fk_111
+    source_document o|..o{ metadata_revision : fk_112
+    metadata_revision o|..o| metadata_revision : fk_113
+    evidence_reference ||..o{ metadata_revision : fk_114
+    metadata_revision o|..o{ review_event : fk_115
+    investigation ||--o{ aggregate_seal : fk_116
+    parse_run o|..o| aggregate_seal : fk_117
+    semantic_annotation o|..o| aggregate_seal : fk_118
+    experimental_condition o|..o| aggregate_seal : fk_119
+    analysis_protocol o|..o| aggregate_seal : fk_120
+    analytical_result o|..o| aggregate_seal : fk_121
+    review_event o|..o| aggregate_seal : fk_122
+    investigation ||--o{ approval_dependency : fk_123
+    review_event ||..o{ approval_dependency : fk_124
+    review_event o|..o{ approval_dependency : fk_125
+    analytical_eligibility o|..o{ approval_dependency : fk_126
+    aggregate_seal o|..o{ approval_dependency : fk_127
+    investigation ||--o{ publication_event : fk_128
+    analytical_result ||..o{ publication_event : fk_129
+    aggregate_seal ||..o{ publication_event : fk_130
+    review_event ||..o{ publication_event : fk_131
+    aggregate_seal ||..o{ publication_event : fk_132
+    publication_event o|..o| publication_event : fk_133
+    condition_segment o|..o{ analytical_eligibility : fk_134
+    observation o|..o{ approval_dependency : fk_135
+    test_source_record o|..o{ approval_dependency : fk_136
+    data_quality_issue o|..o{ approval_dependency : fk_137
+    review_event o|..o{ approval_dependency : fk_138
+    aggregate_seal o|..o{ approval_dependency : fk_139

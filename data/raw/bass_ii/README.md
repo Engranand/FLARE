@@ -1,0 +1,1 @@
+Canonical original CSV is in original/ and remains excluded from Git. A byte-preserving copy was verified against the acquisition manifest SHA-256. ReadMe DOCX and Test Matrices XLSX are pending. See docs/bass_ii_parser.md at the repository root. Never re-save source files.
