@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     db_pool_recycle: int = Field(default=1800, ge=1)
     db_connect_timeout: int = Field(default=5, ge=1, le=60)
 
+    # LLM Scientific Intelligence Layer (Milestone 10.5)
+    llm_provider: str = Field(default="ollama", description="LLM provider: 'ollama', 'mock', etc.")
+    ollama_base_url: str = Field(default="http://127.0.0.1:11434", description="Ollama API base URL")
+    llm_model: str = Field(default="qwen2.5:3b", description="Model name for synthesis")
+    llm_timeout_seconds: float = Field(default=30.0, gt=0, le=180, description="HTTP timeout for LLM calls")
+    llm_api_key: SecretStr | None = Field(default=None, description="Optional API key for external providers")
+
     def require_database_url(self, *, test: bool = False) -> URL:
         """Validate on DB use; never put an input URL in validation errors."""
         secret = self.test_database_url if test else self.database_url
@@ -50,6 +57,32 @@ class Settings(BaseSettings):
         except (ValueError, TypeError, ArgumentError):
             # SQLAlchemy URL parsing exceptions can embed the original input.
             raise DatabaseConfigurationError("Invalid PostgreSQL configuration") from None
+
+        # Test database isolation enforcement
+        if test:
+            protected_names = {
+                "flare", "flare_dev", "flare_development", "flare_prod", "flare_production",
+                "production", "prod", "development", "dev", "master", "main", "postgres"
+            }
+            if url.database and url.database.lower() in protected_names:
+                raise DatabaseConfigurationError(
+                    f"Test database cannot use protected database name: {url.database}"
+                )
+            if self.database_url is not None:
+                dev_str = self.database_url.get_secret_value().strip()
+                if dev_str and not any(character.isspace() for character in dev_str):
+                    dev_url = None
+                    try:
+                        dev_url = make_url(dev_str)
+                    except (ValueError, TypeError, ArgumentError):
+                        dev_url = None
+                    if dev_url is not None:
+                        if (url.host == dev_url.host and (url.port or 5432) == (dev_url.port or 5432)
+                                and url.database == dev_url.database):
+                            raise DatabaseConfigurationError(
+                                "Test database cannot be the same as the development or production database"
+                            )
+
         return url
 
     @field_validator("api_v1_prefix")

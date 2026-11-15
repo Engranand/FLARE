@@ -1,0 +1,53 @@
+=== Diff for backend/migrations/versions/0003_m43_sealing.py ===--- HEAD:backend/migrations/versions/0003_m43_sealing.py
++++ WORKING:backend/migrations/versions/0003_m43_sealing.py
+@@ -46,6 +46,7 @@
+ 
+ def upgrade():
+     op.execute("CREATE SCHEMA flare_sealing")
++    op.execute("CREATE UNLOGGED TABLE flare_sealing.checked_parse (xact_id xid8, parse_run_id uuid, PRIMARY KEY (xact_id, parse_run_id))")
+     rows = [f"('{p}','{fk}','{c}','{ck}')" for p, (fk, children) in AGGREGATES.items()
+             for c, ck in children.items()]
+     op.execute("CREATE FUNCTION flare_sealing.ownership() RETURNS TABLE(parent text, seal_key text, child text, child_key text) LANGUAGE sql IMMUTABLE AS $$ VALUES " + ", ".join(rows) + " $$")
+@@ -90,4 +91,5 @@
+         op.execute(f"DROP TRIGGER {name} ON public.{table}")
+     for signature in reversed(FUNCTIONS):
+         op.execute(f"DROP FUNCTION flare_sealing.{signature}")
++    op.execute("DROP TABLE IF EXISTS flare_sealing.checked_parse")
+     op.execute("DROP SCHEMA flare_sealing")
+
+=== Diff for backend/migrations/versions/m43_sealing.sql ===--- HEAD:backend/migrations/versions/m43_sealing.sql
++++ WORKING:backend/migrations/versions/m43_sealing.sql
+@@ -138,9 +138,29 @@
+     END IF;
+ END $$;
+ -- next function
+-CREATE FUNCTION flare_sealing.check_parse() RETURNS trigger LANGUAGE plpgsql AS $$
+-BEGIN
+-    PERFORM flare_sealing.parse_shape(NEW.investigation_id,CASE WHEN TG_TABLE_NAME='parse_run' THEN NEW.id ELSE (to_jsonb(NEW)->>'parse_run_id')::uuid END);
++CREATE FUNCTION flare_sealing.check_parse() RETURNS trigger
++LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, flare_sealing, public AS $$
++DECLARE
++    pid uuid;
++    first_check boolean;
++BEGIN
++    IF TG_TABLE_NAME = 'parse_run' THEN
++        PERFORM flare_sealing.parse_shape(NEW.investigation_id, NEW.id);
++        RETURN NULL;
++    END IF;
++
++    pid := (to_jsonb(NEW)->>'parse_run_id')::uuid;
++
++    INSERT INTO flare_sealing.checked_parse (xact_id, parse_run_id)
++    VALUES (pg_current_xact_id(), pid)
++    ON CONFLICT DO NOTHING;
++
++    GET DIAGNOSTICS first_check = ROW_COUNT;
++    IF NOT first_check THEN
++        RETURN NULL;
++    END IF;
++
++    PERFORM flare_sealing.parse_shape(NEW.investigation_id, pid);
+     RETURN NULL;
+ END $$;
+ -- next function
+

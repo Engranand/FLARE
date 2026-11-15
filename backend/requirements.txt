@@ -7,3 +7,4 @@ httpx>=0.28,<1.0
 SQLAlchemy==2.0.57
 psycopg[binary]==3.3.8
 alembic==1.20.1
+pypdf>=7.0.0

@@ -18,7 +18,7 @@ from test_variable_immutability import approve, evidence, read_row
 
 pytestmark = pytest.mark.postgres
 BASE = "0005_variable_immutability"
-HEAD = "0006_evidence_immutability"
+HEAD = "0007_m45_n2"
 
 
 @pytest.fixture(scope="module")
@@ -62,7 +62,7 @@ def new_condition(conn, g, prior, revision, variable_review):
 @pytest.fixture
 def reviewed(db, g):
     with db.begin() as conn:
-        variable_review = approve(conn, g, g["scientific_variable"], g["evidence_reference"])
+        variable_review = g["var_review"]
         rows = new_condition(conn, g, g["experimental_condition"], 2, variable_review)
     return rows, variable_review
 
@@ -106,7 +106,7 @@ def test_populated_upgrade_successor_and_history(db, g):
     with db.begin() as conn:
         migrate(conn, "downgrade", BASE, True)
     with db.begin() as conn:
-        variable_review = approve(conn, g, g["scientific_variable"], g["evidence_reference"])
+        variable_review = g["var_review"]
         original = new_condition(conn, g, g["experimental_condition"], 2, variable_review)
         result = clone(conn, g, "analytical_result", g["analytical_result"])
         clone(conn, g, "result_input", g["result_input"], result_id=result)

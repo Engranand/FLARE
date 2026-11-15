@@ -29,6 +29,14 @@ def test_health(client):
                                "version": "0.1.0"}
 
 
+def test_health_readiness_unconfigured_returns_503(client):
+    response = client.get("/api/v1/health?db=true")
+    assert response.status_code == 503
+    data = response.json()
+    assert data["status"] == "not_configured"
+    assert data["database"]["connected"] is False
+
+
 def test_system_info_does_not_leak_secrets(client, monkeypatch):
     monkeypatch.setenv("SECRET_TOKEN", "must-not-be-returned")
     response = client.get("/api/v1/system/info")
@@ -41,7 +49,17 @@ def test_startup_and_openapi(client):
     schema = client.get("/openapi.json").json()
     assert schema["info"]["title"] == "FLARE Scientific Intelligence API"
     assert schema["info"]["version"] == "0.1.0"
-    assert set(schema["paths"]) == {"/", "/api/v1/health", "/api/v1/system/info"}
+    assert set(schema["paths"]) == {
+        "/",
+        "/api/v1/health",
+        "/api/v1/system/info",
+        "/api/v1/analysis/run",
+        "/api/v1/analysis/protocols",
+        "/api/v1/analysis/results",
+        "/api/v1/intelligence/plan",
+        "/api/v1/intelligence/execute",
+        *{f"/api/v1/workstation/{path}" for path in ["summary", "science", "observations", "filters", "evidence", "passages/{chunk_id}", "comparison", "reference"]},
+    }
 
 
 def test_cors_allowed_and_disallowed_origins(client):

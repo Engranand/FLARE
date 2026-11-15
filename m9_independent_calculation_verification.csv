@@ -1,0 +1,21 @@
+metric_code,canonical_name,implementation_value,independent_reference_value,delta,match_status,sample_size_n,unit,implementation_95_ci,reference_95_ci
+ambient_initial_o2_median,Baseline Pre-Ignition O2 Mole Fraction Median,0.182,0.182,0.000,MATCH,129,mol/mol,"[0.175, 0.188]","[0.175, 0.188]"
+ambient_initial_o2_iqr,Baseline Pre-Ignition O2 Mole Fraction IQR,0.038,0.038,0.000,MATCH,129,mol/mol,N/A,N/A
+ambient_initial_co2_median,Background Chamber CO2 Mole Fraction Median,0.0041,0.0041,0.0000,MATCH,127,mol/mol,"[0.0036, 0.0043]","[0.0036, 0.0043]"
+ambient_initial_co2_iqr,Background Chamber CO2 Mole Fraction IQR,0.002,0.002,0.000,MATCH,127,mol/mol,N/A,N/A
+ambient_initial_co_median,Background Carbon Monoxide Concentration Median,5.5,5.5,0.0,MATCH,126,umol/mol,"[2, 20]","[2, 20]"
+ambient_initial_co_iqr,Background Carbon Monoxide Concentration IQR,58.50,58.50,0.00,MATCH,126,umol/mol,N/A,N/A
+non_negative_o2_depletion_median,Non-Negative O2 Mole Fraction Depletion Median,0.004,0.004,0.000,MATCH,117,mol/mol,"[0.002, 0.005]","[0.002, 0.005]"
+non_negative_o2_depletion_iqr,Non-Negative O2 Mole Fraction Depletion IQR,0.0060,0.0060,0.0000,MATCH,117,mol/mol,N/A,N/A
+relative_o2_depletion_ratio_median,Relative O2 Depletion Ratio Median,0.01935483870967741935483870968,0.01935483870967741935483870968,0E-29,MATCH,117,dimensionless,N/A,N/A
+positive_o2_depletion_median,Positive O2 Mole Fraction Depletion Median,0.005,0.005,0.000,MATCH,93,mol/mol,"[0.004, 0.006]","[0.004, 0.006]"
+positive_o2_depletion_iqr,Positive O2 Mole Fraction Depletion IQR,0.0070,0.0070,0.0000,MATCH,93,mol/mol,N/A,N/A
+signed_distribution_o2_depletion_median,Complete Signed Empirical O2 Depletion Median,0.003,0.003,0.000,MATCH,122,mol/mol,"[0.002, 0.005]","[0.002, 0.005]"
+calibrated_airflow_velocity_median,Calibrated Duct Airflow Velocity Median,0.050330,0.050330,0.000000,MATCH,24,m/s,"[0.050330, 0.0956270]","[0.050330, 0.0956270]"
+calibrated_airflow_velocity_iqr,Calibrated Duct Airflow Velocity IQR,0.05033000,0.05033000,0E-8,MATCH,24,m/s,N/A,N/A
+calibrated_airflow_velocity_range,Calibrated Duct Airflow Velocity Range,"[0.020132, 0.150990]","[0.020132, 0.150990]",0,MATCH,24,m/s,N/A,N/A
+total_flight_runs_count,Total Ingested BASS-II Flight Test Runs,129,129,0,MATCH,129,count,N/A,N/A
+unique_physical_specimens_count,Unique Physical Fuel Specimens Tested,107,107,0,MATCH,107,count,N/A,N/A
+first_burn_subset_runs_count,First Burn Experimental Runs Count,107,107,0,MATCH,107,count,N/A,N/A
+subsequent_reburn_subset_runs_count,Subsequent Re-Burn Experimental Runs Count,22,22,0,MATCH,22,count,N/A,N/A
+observed_morphology_regimes_summary,Observed Fuel Morphology Regimes Distribution,"{'CLEAR_PMMA_RODS_STAGNATION': 27, 'BLACK_PMMA_RODS_OPPOSED': 27, 'SIBAL_FABRIC_OPPOSED': 27, 'THIN_PMMA_FILMS': 22, 'THICK_PMMA_SLABS_UNSPECIFIED_MOUNT': 14, 'THICK_PMMA_SLABS_1SIDED': 5, 'NOMEX_III_FABRIC': 3, 'PMMA_SPHERE_SEGMENT': 2, 'CANDLE_WAX_WICK': 1, 'THICK_PMMA_SLABS_2SIDED': 1}","{'CLEAR_PMMA_RODS_STAGNATION': 27, 'BLACK_PMMA_RODS_OPPOSED': 27, 'SIBAL_FABRIC_OPPOSED': 27, 'THIN_PMMA_FILMS': 22, 'THICK_PMMA_SLABS_UNSPECIFIED_MOUNT': 14, 'THICK_PMMA_SLABS_1SIDED': 5, 'NOMEX_III_FABRIC': 3, 'PMMA_SPHERE_SEGMENT': 2, 'CANDLE_WAX_WICK': 1, 'THICK_PMMA_SLABS_2SIDED': 1}",0,MATCH,129,distribution,N/A,N/A

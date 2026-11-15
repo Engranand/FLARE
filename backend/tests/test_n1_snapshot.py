@@ -98,8 +98,22 @@ def g(db):
         selected2,_=link(c,g,record=row,test=g['experimental_test'])
         head=review(c,g,'test_link_id',selected2,'approved')
         insert(c,g,'approval_dependency',owner_review_id=g['review_event'],entry_kind='decision',role='identity',dependency_review_id=head)
-        for parent in ('experimental_condition','review_event','analytical_result'):
-            seal(c,g,parent)
+        has_guard = scalar(c, "SELECT to_regprocedure('flare_sealing.check_condition_review()') IS NOT NULL")
+        if has_guard:
+            from test_variable_immutability import approve
+            cond_seal=seal(c,g,'experimental_condition')
+            var_rev=approve(c,g,g['scientific_variable'],g['evidence_reference'])
+            insert(c,g,'approval_dependency',owner_review_id=g['review_event'],entry_kind='decision',role='condition_content',dependency_seal_id=cond_seal)
+            insert(c,g,'approval_dependency',owner_review_id=g['review_event'],entry_kind='decision',role='variable_definition',dependency_review_id=var_rev)
+            seal(c,g,'review_event')
+            seal(c,g,'analytical_result')
+            g['var_review']=var_rev
+        else:
+            for parent in ('experimental_condition','review_event','analytical_result'):
+                seal(c,g,parent)
+
+
+
         g['extra_obs']=obs
         g['extra_link']=selected2
         for state in ('approved','rejected','unreviewed','revoked','unsealed'):
@@ -352,7 +366,9 @@ def test_valid_component_identity_cannot_mask_another_wrong_selected_link(db,g):
         valid=scalar(c,'select id from review_event where test_link_id=:id',id=g['extra_link'])
         for pinned in (valid,g['approved_head']):
             insert(c,g,'approval_dependency',owner_review_id=condition_review,entry_kind='decision',role='identity',dependency_review_id=pinned)
-        seal(c,g,'experimental_condition',pid=cond)
+        cond_seal=seal(c,g,'experimental_condition',pid=cond)
+        insert(c,g,'approval_dependency',owner_review_id=condition_review,entry_kind='decision',role='condition_content',dependency_seal_id=cond_seal)
+        insert(c,g,'approval_dependency',owner_review_id=condition_review,entry_kind='decision',role='variable_definition',dependency_review_id=g['var_review'])
         seal(c,g,'review_event',pid=condition_review)
         eligibility=clone(c,g,'analytical_eligibility',g['analytical_eligibility'],condition_id=cond,
                           condition_review_id=condition_review,revision=2,supersedes_id=g['analytical_eligibility'])
