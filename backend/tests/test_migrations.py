@@ -13,9 +13,9 @@ from app.db.migrations import migration_config
 def test_migration_discovery_and_empty_baseline():
     config = migration_config()
     directory = ScriptDirectory.from_config(config)
-    assert directory.get_heads() == ["0008_m6_security_remediation"]
+    assert directory.get_heads() == ["0009_m10_4_document_chunks"]
     revisions = list(directory.walk_revisions())
-    assert len(revisions) == 8 and revisions[-1].down_revision is None
+    assert len(revisions) == 9 and revisions[-1].down_revision is None
     assert revisions[-1].module.upgrade() is None
     assert revisions[-1].module.downgrade() is None
     assert config.get_main_option("sqlalchemy.url") is None

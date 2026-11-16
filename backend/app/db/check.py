@@ -31,7 +31,7 @@ def get_head_revision(settings: Settings) -> str | None:
         heads = directory.get_heads()
         return heads[0] if heads else None
     except Exception:
-        return "0008_m6_security_remediation"
+        return None
 
 
 def check_database_health(

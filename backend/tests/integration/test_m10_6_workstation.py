@@ -119,6 +119,14 @@ def connection_context(app):
         generator.close()
 
 
+def test_concurrent_workstation_reads(client):
+    from concurrent.futures import ThreadPoolExecutor
+    paths = ['summary', 'science', 'observations', 'filters'] * 2
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        responses = list(pool.map(lambda path: client.get('/api/v1/workstation/'+path), paths))
+    assert all(r.status_code == 200 for r in responses), [(r.status_code, r.text[:100]) for r in responses]
+
+
 def test_optional_browser_preview(m10_5_db):
     if os.environ.get('FLARE_M106_PREVIEW') != '1':
         pytest.skip('Interactive preview is opt-in')

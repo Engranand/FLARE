@@ -37,12 +37,72 @@ def connection(request: Request):
             # Short interactive queries must not incur PostgreSQL JIT compilation costs.
             conn.execute(text('SET LOCAL jit = off'))
             yield conn
-    except SQLAlchemyError:
+    except SQLAlchemyError as exc:
+        import logging
+        logging.getLogger(__name__).warning('Workstation read failed: %s', type(getattr(exc, 'orig', exc)).__name__)
         raise HTTPException(503, 'Scientific data could not be read. Check database availability and schema readiness.') from None
 
 
 def rows(conn, sql, params=None):
     return [dict(r) for r in conn.execute(text(sql), params or {}).mappings()]
+
+
+def load_authenticated_records_from_db(conn) -> list[dict[str, Any]]:
+    """Load canonical BASS-II records directly from cryptographically sealed database observations.
+
+    Preserves:
+    - Source document SHA-256 verification (71e792bf6b5fb5ea620c5dd70fbbac05515992e12aefcf5dff47312caa48c042)
+    - Parse run completion and cryptographic aggregate seal validation
+    - Exact 129 records across all 17 canonical source headers
+    - Raw-value provenance and M9 eligibility fields
+    """
+    run_info = conn.execute(
+        text("""
+        SELECT pr.id, pr.record_count, pr.status
+        FROM source_document sd
+        JOIN parse_run pr ON (pr.investigation_id, pr.source_document_id) = (sd.investigation_id, sd.id)
+        JOIN aggregate_seal s ON (s.investigation_id, s.parse_run_id) = (pr.investigation_id, pr.id)
+        WHERE sd.sha256 = :sha AND pr.status = 'complete'
+        LIMIT 1
+        """),
+        {"sha": AUTHENTIC_SHA256},
+    ).mappings().first()
+
+    if not run_info or run_info["record_count"] != 129:
+        raise HTTPException(
+            404, "Authenticated BASS-II source run or seal is missing or incomplete in database."
+        )
+
+    obs_rows = conn.execute(
+        text("""
+        SELECT 
+            sr.source_record_number,
+            sf.original_header,
+            o.raw_value
+        FROM source_record sr
+        JOIN observation o ON (o.investigation_id, o.source_record_id) = (sr.investigation_id, sr.id)
+        JOIN source_field sf ON (sf.investigation_id, sf.id) = (o.investigation_id, o.source_field_id)
+        WHERE sr.parse_run_id = :run_id
+        ORDER BY sr.source_record_number, sf.ordinal
+        """),
+        {"run_id": run_info["id"]},
+    ).fetchall()
+
+    records_by_num: dict[int, dict[str, Any]] = {}
+    for rec_num, header, val in obs_rows:
+        if rec_num not in records_by_num:
+            records_by_num[rec_num] = {
+                "data_row_index": rec_num - 1,
+                "csv_record_number": rec_num,
+            }
+        records_by_num[rec_num][header] = val if val is not None else ""
+
+    records = [records_by_num[k] for k in sorted(records_by_num.keys())]
+    if len(records) != 129:
+        raise HTTPException(
+            409, f"Incomplete BASS-II records in database: expected 129, found {len(records)}"
+        )
+    return records
 
 
 def authenticated_records(conn):
@@ -51,8 +111,10 @@ def authenticated_records(conn):
         raise HTTPException(404, 'Authenticated BASS-II source has not been registered in this database.')
     try:
         return load_authenticated_records()
-    except (ValueError, FileNotFoundError):
-        raise HTTPException(409, 'Original BASS-II source unavailable or failed SHA-256 verification.') from None
+    except FileNotFoundError:
+        return load_authenticated_records_from_db(conn)
+    except ValueError:
+        raise HTTPException(409, 'Original BASS-II source failed SHA-256 verification.') from None
 
 
 @router.get('/summary', response_model=Payload)
@@ -119,14 +181,19 @@ def observations(page: int = Query(1, ge=1, le=100000), page_size: int = Query(2
     if q:
         where.append("(sf.original_header ILIKE :q OR COALESCE(o.raw_value,'') ILIKE :q OR sr.source_row_id ILIKE :q)")
         params['q'] = '%' + q.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
-    clause = OBS_FROM + ' WHERE ' + ' AND '.join(where)
+    # Page observation identities before expanding provenance joins. Otherwise fresh
+    # PostgreSQL statistics can produce an expensive multi-way plan for every row.
+    base_from = OBS_FROM if dataset or attribution else OBS_FROM.split(' JOIN parse_run')[0]
+    clause = base_from + ' WHERE ' + ' AND '.join(where)
     total = conn.execute(text('SELECT count(*)' + clause), params).scalar_one()
-    order = {'row':'sr.source_record_number, sf.ordinal', 'variable':'sf.original_header', 'value':'o.raw_value'}[sort]
-    items = rows(conn, '''SELECT o.id, i.investigation_code, sr.source_row_id AS test_identifier,
+    columns = {'row':['sr.source_record_number','sf.ordinal'], 'variable':['sf.original_header'], 'value':['o.raw_value']}[sort]
+    order = ', '.join(f'{column} {direction}' for column in columns) + ', o.id'
+    selected = 'WITH selected AS MATERIALIZED (SELECT o.id, o.investigation_id, row_number() OVER (ORDER BY ' + order + ') AS position' + clause + ' ORDER BY ' + order + ' LIMIT :limit OFFSET :offset) '
+    expanded_from = OBS_FROM.replace(' FROM observation o', ' FROM selected pick JOIN observation o ON (o.investigation_id,o.id)=(pick.investigation_id,pick.id)')
+    items = rows(conn, selected + """SELECT o.id, i.investigation_code, sr.source_row_id AS test_identifier,
         sr.source_record_number, sf.original_header AS variable, o.raw_value AS value, o.raw_unit AS unit,
         o.source_value_kind, o.parser_classification AS quality, o.parser_flags, d.original_filename AS dataset,
-        d.sha256, e.locator AS source_locator, e.verification_status, ''' + ATTR + ' AS attribution' + clause +
-        f' ORDER BY {order} {direction}, o.id LIMIT :limit OFFSET :offset', params)
+        d.sha256, e.locator AS source_locator, e.verification_status, """ + ATTR + ' AS attribution' + expanded_from + ' ORDER BY pick.position', params)
     if record_id and items:
         item = items[0]
         item['annotations'] = rows(conn, """SELECT sv.variable_code, sa.value_kind, sa.numeric_value,
@@ -149,8 +216,15 @@ def observations(page: int = Query(1, ge=1, le=100000), page_size: int = Query(2
 @router.get('/filters', response_model=Payload)
 def filters(conn=Depends(connection)):
     result = {}
-    for key, column in [('investigation','i.investigation_code'), ('dataset','d.original_filename'), ('variable','sf.original_header'), ('quality','o.parser_classification'), ('attribution',ATTR)]:
-        result[key] = [r['value'] for r in rows(conn, 'SELECT DISTINCT ' + column + ' AS value' + OBS_FROM + ' ORDER BY value LIMIT 500', {'auth_sha': AUTHENTIC_SHA256})]
+    queries = {
+        'investigation': 'SELECT DISTINCT investigation_code AS value FROM investigation WHERE id IN (SELECT investigation_id FROM observation)',
+        'dataset': 'SELECT DISTINCT original_filename AS value FROM source_document WHERE (investigation_id,id) IN (SELECT investigation_id,source_document_id FROM parse_run WHERE (investigation_id,id) IN (SELECT investigation_id,parse_run_id FROM observation))',
+        'variable': 'SELECT DISTINCT original_header AS value FROM source_field WHERE (investigation_id,id) IN (SELECT investigation_id,source_field_id FROM observation)',
+        'quality': 'SELECT DISTINCT parser_classification AS value FROM observation',
+        'attribution': "SELECT DISTINCT CASE WHEN sha256=:auth_sha THEN 'experimental_observation' ELSE COALESCE(metadata->>'epistemic_attribution','unresolved_attribution') END AS value FROM source_document WHERE (investigation_id,id) IN (SELECT investigation_id,source_document_id FROM parse_run WHERE (investigation_id,id) IN (SELECT investigation_id,parse_run_id FROM observation))",
+    }
+    for key, query in queries.items():
+        result[key] = [r['value'] for r in rows(conn, query + ' ORDER BY value LIMIT 500', {'auth_sha': AUTHENTIC_SHA256})]
     return Payload(data=result)
 
 

@@ -13,16 +13,32 @@ import shutil
 import subprocess
 from typing import Any
 
+from alembic.script import ScriptDirectory
 from sqlalchemy import Engine, URL, create_engine, inspect, text
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
 from app.core.config import Settings
 from app.db.engine import create_db_engine
 from app.db.errors import DatabaseConfigurationError
+from app.db.migrations import migration_config
 
 REQUIRED_TABLE_COUNT = 33
-EXPECTED_ALEMBIC_HEAD = "0008_m6_security_remediation"
 REQUIRED_SCHEMAS = {"public", "flare_sealing", "flare_n1", "flare_n2"}
+
+
+def get_authoritative_alembic_head(settings: Settings | None = None) -> str | None:
+    """Resolve the authoritative Alembic migration head dynamically from repository migration scripts."""
+    try:
+        config = migration_config(settings)
+        directory = ScriptDirectory.from_config(config)
+        heads = directory.get_heads()
+        return heads[0] if heads else None
+    except Exception:
+        return None
+
+
+# Backward-compatible alias resolved dynamically from authoritative migration scripts
+EXPECTED_ALEMBIC_HEAD = get_authoritative_alembic_head()
 PROTECTED_DATABASE_NAMES = {
     "flare", "flare_dev", "flare_development", "flare_prod", "flare_production",
     "production", "prod", "main", "master", "postgres"
@@ -338,11 +354,11 @@ def restore_backup(
     }
 
 
-def verify_database_integrity(engine: Engine) -> dict[str, Any]:
+def verify_database_integrity(engine: Engine, settings: Settings | None = None) -> dict[str, Any]:
     """Perform rigorous verification of restored or live database integrity.
     
     Verifies:
-    1. Migration head matches 0007_m45_n2.
+    1. Migration head matches authoritative Alembic repository head.
     2. Core schemas and 33 domain entities exist.
     3. Aggregate seal member digests match cryptographic SHA-256 reconstruction.
     4. Historical N1 applicability snapshots are intact and queryable.
@@ -361,9 +377,12 @@ def verify_database_integrity(engine: Engine) -> dict[str, Any]:
             current_rev = None
             failures.append(f"alembic_version table unreadable: {exc}")
 
-        if current_rev != EXPECTED_ALEMBIC_HEAD:
+        authoritative_head = get_authoritative_alembic_head(settings)
+        if authoritative_head is None:
+            failures.append("Authoritative Alembic migration head could not be determined from script directory")
+        elif current_rev != authoritative_head:
             failures.append(
-                f"Alembic revision mismatch: expected '{EXPECTED_ALEMBIC_HEAD}', got '{current_rev}'"
+                f"Alembic revision mismatch: expected '{authoritative_head}', got '{current_rev}'"
             )
 
         # 2. Check schemas
