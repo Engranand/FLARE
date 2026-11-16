@@ -24,7 +24,7 @@ services:
       - key: API_V1_PREFIX
         value: /api/v1
       - key: FRONTEND_ORIGIN
-        value: https://flare-frontend.onrender.com
+        value: https://flare-frontend-y69h.onrender.com
       - key: LLM_PROVIDER
         value: mock
       - key: DATABASE_URL
@@ -57,7 +57,7 @@ services:
       - key: NODE_VERSION
         value: 22.12.0
       - key: VITE_API_BASE_URL
-        value: https://flare-backend.onrender.com/api/v1
+        value: https://flare-backend-omo1.onrender.com/api/v1
 
 # ---------------------------------------------------------------------------
 # 3. FLARE PostgreSQL Database
